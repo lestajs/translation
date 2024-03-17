@@ -1,7 +1,10 @@
-> ## Lesta Core Framework
-> Simple and clear concepts, separation of JavaScript and HTML. Reactivity is achieved through the native properties of DOM nodes without using a virtual DOM. All of this provides incredible flexibility for integration with existing projects and other libraries.
-> 
-> <img src="https://github.com/lestajs/translation/assets/68551616/1532c892-dafd-46d4-8bb8-48f4fb676f0b" width="160px">
+## Lesta Core Framework
+
+Simple and clear concepts, separation of JavaScript and HTML. Reactivity is achieved through the native properties of DOM nodes without using a virtual DOM. All of this provides incredible flexibility for integration with existing projects and other libraries.
+
+<img src="https://github.com/lestajs/translation/assets/68551616/1532c892-dafd-46d4-8bb8-48f4fb676f0b" width="160px">
+
+---
 
 # Quick start
 ```bash
