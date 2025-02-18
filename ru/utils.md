@@ -1,63 +1,88 @@
 # Utils
-
-## reactivity
 ```js
-console.log(this.node.foo.reactivity)
+import { isObject, replicate, deliver, mapProps,  debounce, throttle, delayRace, loadModule  revocablePromise, escHtml } from 'lesta'
 ```
-В объекте this.node[‘nodename’].reactivity описаны все реактивные функции используемые в node. Если необходимо отменить реактивность для узла, достаточно удалить соответствующую функцию в этом объекте.
+Утилиты доступный в модуле lesta.
 
-## deleteReactive
+## isObject
 ```js
-deleteReactive(reactivity, keypath)
+isObject({}) // true
+isObject([]) // false
+isObject(null) // false
 ```
-
-## exclude
-```js
-textContent: () => this.exclude(() => this.proxy.foo)
-```
-Эта функция позволяет получить данные прокси, не включая его в реактивность для функции в которой он используется.
+Функция возвращает true если передан объект, но не не массив и не null.
 
 ## replicate
 ```js
-import { replicate } from 'lesta'
-…
-const clone = replicate(nestedObject)
+const cloneObject = replicate({...})
 ```
-Функция replicate делает глубокое клонирование объекта с помощью сериализации. Работает только с типами данных которые поддерживает JSON, для клонирования объектов с другими типами можно использовать нативную javascript функцию structuredClone().
+Функция глубокого клонирования объекта с помощью сериализации. Работает только с типами данных которые поддерживает JSON. Для клонирования объектов с другими типами можно использовать нативную javascript функцию structuredClone().
 
-## delay
-```js
-import { delay } from 'lesta'
-…
-async add(notify) {
-  this.proxy.notifications.unshift(notify)
-  await delay(this.param.time)
-  this.proxy.notifications.pop()
-}
-```
-```js
-if (incomplete) {
-  this.param.delayFilter = delay(2000)
-	this.param.delayFilter.then(() => { .. }).catch(()=> {})
-} else if (!this.param.delayFilter.process) {…}
-…
-this.param.delayFilter?.stop()
-```
 
-## debounce
+## deliver
 ```js
-import { debounce } from 'lesta'
-…
-nodes() {
-  return {
-    search: {
-      oninput: debounce((e) => this.method.search(e.target.value), 300)
-    }
+const obj = { a: { b: { c: 1 } } };
+
+console.log(deliver(obj, "a.b.c")) // 1
+console.log(deliver(obj, ["a", "b", "c"])) // 1
+
+deliver(obj, "a.b.c", 2)
+console.log(obj.a.b.c) // 2
+```
+Функция предоставляет безопасный способ получения и изменения вложенных свойств объекта по заданному пути. Принимает следующие параметры: 
+
+- `target` Объект, в котором нужно получить или изменить значение.
+- `path` Путь к вложенному свойству. Может быть строкой, разделенной точками (например, "a.b.c"), или массивом строк (например, ["a", "b", "c"]).
+- `value` Необязательный параметр. Если указан, то значение вложенного свойства будет изменено на это значение.
+
+## mapProps
+```js
+props: {
+  proxies: {	
+    ...mapProps(['tasks', 'loading', 'isModify'], { store: 'tasks' })
+  },
+  methods: {
+    ...mapProps(['addTask', 'searchTasks', 'filterTasks'], { store: 'tasks' })
   }
 }
 ```
+Функция создает объект, где каждому ключу из массива keys присваивается указанное значение value.
 
-## throttling
+Параметры:
+- `keys` (массив): Массив строк, которые станут ключами результирующего объекта.
+- `value` (любое значение): Значение, которое будет присвоено каждому ключу.
+
+Возвращаемое значение:
+Объект, где каждый ключ из массива keys соответствует значению value. Используется для создания короткой записи объявления props.
+
+## debounce
+```js
+// search node
+oninput: (e) => {
+  if (this.param.isPaste) {
+    this.method.search({value: e.target.value})
+    this.param.isPaste = false
+  } else {
+    this.param.debouncedSearch(e)
+  }
+},
+onpaste: () => this.param.isPaste = true
+…
+  created() {
+    this.param.debouncedSearch = debounce((e) => this.method.search({value: e.target.value}), 250)
+  }
+```
+Функция позволяет "затормозить" вызов другой функции, чтобы она выполнялась только после того, как прошло определенное время с момента последнего вызова. Это полезно для оптимизации производительности, например, при обработке событий, которые происходят часто (например, ввод текста, изменение размера окна).
+
+Параметры:
+- `fn` (функция): Функция, вызов которой нужно "затормозить".
+- `timeout` (число, по умолчанию 150): Время в миллисекундах, которое нужно ждать перед вызовом fn.
+
+Возвращаемое значение:
+Новая функция, которая будет вызывать fn только после того, как с момента последнего вызова прошло timeout миллисекунд.
+
+
+## throttle
 ```js
 import { throttling } from 'lesta'
 …
@@ -65,36 +90,47 @@ const throttled = throttle(() => console.log("Throttling test: "), 1000)
 window.addEventListener('resize', throttled)
 ```
 Функция throttling позволяет ограничить частоту вызовов функции до определенного значения. Это может помочь избежать проблем с производительностью при большом количестве вызовов и/или при работе с медленными операциями. Она также может быть полезной для случаев, когда нужно предотвратить ненамеренные двойные нажатия на кнопку или отправку нескольких запросов.
-Функция throttling принимает два аргумента:
-- функция, которую нужно ограничить по частоте вызовов.
-- время в миллисекундах, через которое функция может быть вызвана повторно.
+
+Параметры:
+- `fn` (функция), которую нужно ограничить по частоте вызовов.
+- `timeout` (число, по умолчанию 150): Время задержки в миллисекундах, через которое функция может быть вызвана повторно.
+
+## delayRace
+```js
+
+```
+Функция задержки может принимать два необязательных параметра:
+- `ms` Количество миллисекунд задержки (по умолчанию 0).
+- `signal` Экземпляр объекта  [AbortSignal](https://developer.mozilla.org/en-US/docs/Web/API/AbortController/signal) для прерывания задержки.
+Возвращает промис, который разрешается через `ms` миллисекунд, если сигнал `signal` не отменен. Если сигнал `signal` отменяется до истечения таймаута, промис отклоняется.
 
 ## loadModule
-Функция для загрузки модулей. Если передать функция которая возвращает промис, то дождется выполнения промиса и вернет дефолтное значение. Если передать объект то вернет сам объект.
-
-
-## uid
 ```js
-import { uid } from 'lesta'
-…
-const id = uid()
-```
-С помощью этой функции можно получать случайные uid в формате xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx. Это формат UUID v4, который используется в стандарте RFC 4122.
+const signal = new AbortController().signal
+const aborted = () => console.log('aborted')
+const dynamicImport = () => import('./myModule.js')
 
-## deepFreeze
+const module = await loadModule(dynamicImport, signal, aborted)
+console.log(module)
+```
+
+Функция предназначена для загрузки модуля. Она поддерживает асинхронную загрузку модулей и обработку сигналов отмены.
+
+Параметры:
+- `src` (может быть функцией или объектом): Если это функция, она должна возвращать либо объект, либо промис. Если это объект, он будет возвращен сразу.
+`signal` Необязательный параметр. Объект AbortSignal, используется для отмены операции загрузки, если это необходимо.
+`aborted`Необязательный параметр. Callback функция вызывается при отмене операции загрузки.
+
+
+## escHtml
 ```js
-import { deepFreeze } from 'lesta'
-…
-const readOnlyObject = deepFreeze(nestedObject)
-```
-Если вам нужно сделать объект доступным только для чтения вы можете использовать нативную javascript функцию Object.freeze(). Для объектов имеющих вложенность используйте deepFreeze.
+const unsafeString = '<script>alert("XSS Attack!")</script> & "Hello"'
 
-## mapProps
-```js
+const safeString = escHtml(unsafeString)
+
+console.log(safeString) // &lt;script&gt;alert(&quot;XSS Attack!&quot;)&lt;/script&gt; &amp; &quot;Hello&quot;
 
 ```
-Эта функция позволяет сгруппировать пропсы с одинаковыми опциями. Она используется только для создание более короткой записи и дает никаких дополнительных возможностей.
+Используется для экранирования специальных символов в HTML-строке, предотвращая XSS-атаки. Она заменяет символы `<`, `>`, `&`, `"`, `'`, ```, `=` на их HTML-сущности (`&lt;`, `&gt;`, `&amp;`, `&quot;`, `&#x27;`, `&#x60;`, `&#x3D;`), делая строку безопасной для вставки в HTML-код. 
 
-## deliver
-
-## queue
+> Обязательно используйте эту функцию для небезопасного HTML.
