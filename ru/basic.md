@@ -1,5 +1,6 @@
 ## Lesta Basic
-Lesta Basic — a documentation section with the framework’s core API and its lightweight version for single-component widgets.
+Lesta Basic — a documentation section with the framework’s core API and its lightweight version for single-component widgets. 
+All code examples are extracted from our [examples repository](https://github.com/lestajs/exapmles)
 
 <img src="https://github.com/lestajs/translation/assets/68551616/1532c892-dafd-46d4-8bb8-48f4fb676f0b" width="150px">
 <!--decor-->
